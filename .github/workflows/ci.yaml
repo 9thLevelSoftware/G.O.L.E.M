@@ -214,7 +214,7 @@ jobs:
   # the live comment poller can list failed jobs in the PR comment.
   # ─────────────────────────────────────────────────────────────────────
   all-checks-pass:
-    name: All required checks pass
+    name: CI / all-checks-pass
     needs:
       - detect
       - tests
