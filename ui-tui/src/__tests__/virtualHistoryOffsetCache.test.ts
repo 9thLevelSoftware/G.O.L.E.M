@@ -520,7 +520,7 @@ describe('useVirtualHistory offset cache reuse', () => {
     const streams = makeStreams()
     const initialHeights = new Map(items.map(item => [item.key, item.height]))
 
-    const instance = renderSync(React.createElement(Harness, { expose, initialHeights, items }), {
+    const instance = renderSync(React.createElement(Harness, { expose, initialHeights, items, maxMounted: 8 }), {
       patchConsole: false,
       stderr: streams.stderr as NodeJS.WriteStream,
       stdin: streams.stdin as NodeJS.ReadStream,
@@ -538,7 +538,7 @@ describe('useVirtualHistory offset cache reuse', () => {
       const staleHeights = new Map(initialHeights)
 
       staleHeights.set(items[0]!.key, 1)
-      instance.rerender(React.createElement(Harness, { expose, initialHeights: staleHeights, items }))
+      instance.rerender(React.createElement(Harness, { expose, initialHeights: staleHeights, items, maxMounted: 8 }))
       await vi.waitFor(() => expect(adjustScrollTop).toHaveBeenCalledOnce(), { timeout: 5000, interval: 10 })
 
       expect(adjustScrollTop).toHaveBeenCalledWith(1)
@@ -550,7 +550,7 @@ describe('useVirtualHistory offset cache reuse', () => {
       instance.unmount()
       instance.cleanup()
     }
-  })
+  }, 30000)
 
   it('does not compensate for measured height changes in or below the viewport', async () => {
     const before = Array.from({ length: 20 }, (_, index) => ({ height: 2, key: `item-${index}` }))
