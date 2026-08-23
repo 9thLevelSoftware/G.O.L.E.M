@@ -538,7 +538,10 @@ describe('useVirtualHistory offset cache reuse', () => {
       const staleHeights = new Map(initialHeights)
 
       staleHeights.set(items[0]!.key, 1)
-      instance.rerender(React.createElement(Harness, { expose, initialHeights: staleHeights, items, maxMounted: 4 }))
+      const replacementItems = items.map((item, index) => (index === 0 ? { ...item, key: 'replacement' } : item))
+      instance.rerender(
+        React.createElement(Harness, { expose, initialHeights: staleHeights, items: replacementItems, maxMounted: 4 })
+      )
       await vi.waitFor(() => expect(adjustScrollTop).toHaveBeenCalledOnce(), { timeout: 5000, interval: 10 })
 
       expect(adjustScrollTop).toHaveBeenCalledWith(1)
