@@ -135,6 +135,26 @@ export const ensureVirtualItemHeight = (
   return seeded
 }
 
+export function unmountHeightCompensation(
+  measuredHeight: number,
+  previousHeight: number | undefined,
+  measuredBottom: number | undefined,
+  viewportTop: number,
+  sticky: boolean
+): number {
+  if (
+    !validVirtualItemHeight(measuredHeight) ||
+    previousHeight === undefined ||
+    measuredBottom === undefined ||
+    measuredBottom > viewportTop ||
+    sticky
+  ) {
+    return 0
+  }
+
+  return measuredHeight - previousHeight
+}
+
 export function useVirtualHistory(
   scrollRef: RefObject<ScrollBoxHandle | null>,
   items: readonly { key: string }[],
@@ -521,14 +541,10 @@ export function useVirtualHistory(
               top: safeUnsignedGeometry(s?.getScrollTop() ?? 0)
             })
 
-            if (
-              s &&
-              previousHeight !== undefined &&
-              measuredBottom !== undefined &&
-              measuredBottom <= viewport.top &&
-              !viewport.sticky
-            ) {
-              s.adjustScrollTop(h - previousHeight)
+            const adjustment = unmountHeightCompensation(h, previousHeight, measuredBottom, viewport.top, viewport.sticky)
+
+            if (s && adjustment !== 0) {
+              s.adjustScrollTop(adjustment)
             }
 
             heights.current.set(key, h)

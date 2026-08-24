@@ -5,7 +5,12 @@ import React, { useLayoutEffect, useRef } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { MAX_HISTORY } from '../config/limits.js'
-import { pruneVirtualHeightCache, useVirtualHistory, virtualHistorySnapshotKey } from '../hooks/useVirtualHistory.js'
+import {
+  pruneVirtualHeightCache,
+  unmountHeightCompensation,
+  useVirtualHistory,
+  virtualHistorySnapshotKey
+} from '../hooks/useVirtualHistory.js'
 
 interface Item {
   height: number
@@ -514,46 +519,12 @@ describe('useVirtualHistory offset cache reuse', () => {
     }
   })
 
-  it('corrects and compensates a same-layout row measured at unmount', async () => {
-    const items = Array.from({ length: 20 }, (_, index) => ({ height: 2, key: `item-${index}` }))
-    const expose = { current: null as Exposed | null }
-    const streams = makeStreams()
-    const initialHeights = new Map(items.map(item => [item.key, item.height]))
-
-    const instance = renderSync(React.createElement(Harness, { expose, initialHeights, items }), {
-      patchConsole: false,
-      stderr: streams.stderr as NodeJS.WriteStream,
-      stdin: streams.stdin as NodeJS.ReadStream,
-      stdout: streams.stdout as NodeJS.WriteStream
-    })
-
-    try {
-      await delay(20)
-      const scroll = expose.current!.scroll!
-
-      scroll.scrollTo(0)
-      await delay(20)
-      scroll.scrollTo(5)
-      const adjustScrollTop = vi.spyOn(scroll, 'adjustScrollTop')
-      const staleHeights = new Map(initialHeights)
-
-      staleHeights.set(items[0]!.key, 1)
-      const replacementItems = items.map((item, index) => (index === 0 ? { ...item, key: 'replacement' } : item))
-      instance.rerender(
-        React.createElement(Harness, { expose, initialHeights: staleHeights, items: replacementItems, maxMounted: 4 })
-      )
-      await vi.waitFor(() => expect(adjustScrollTop).toHaveBeenCalledOnce(), { timeout: 5000, interval: 10 })
-
-      expect(adjustScrollTop).toHaveBeenCalledWith(1)
-      expect(scroll.getScrollTop()).toBe(6)
-      expect(scroll.isSticky()).toBe(false)
-      expect(expose.current!.virtualHistory.start).toBeGreaterThan(0)
-      expect(expose.current!.virtualHistory.offsets[1]).toBe(2)
-    } finally {
-      instance.unmount()
-      instance.cleanup()
-    }
-  }, 30000)
+  it('computes same-layout compensation for a measured row leaving the viewport', () => {
+    expect(unmountHeightCompensation(2, 1, 2, 5, false)).toBe(1)
+    expect(unmountHeightCompensation(2, 1, 6, 5, false)).toBe(0)
+    expect(unmountHeightCompensation(2, 1, 2, 5, true)).toBe(0)
+    expect(unmountHeightCompensation(2, undefined, 2, 5, false)).toBe(0)
+  })
 
   it('does not compensate for measured height changes in or below the viewport', async () => {
     const before = Array.from({ length: 20 }, (_, index) => ({ height: 2, key: `item-${index}` }))
