@@ -75,4 +75,7 @@ jobs:
       # not an empty run, because an empty run reports green after it checks
       # nothing.
       - name: Run all workspace checks
-        run: node .github/scripts/run-workspace-checks.mjs
+        # The standard hosted runner has four cores. Serializing the 11
+        # workspace checks avoids starving the desktop UI suite; local timing
+        # is ~124s serial versus >7m under four-way contention.
+        run: node .github/scripts/run-workspace-checks.mjs --concurrency 1
